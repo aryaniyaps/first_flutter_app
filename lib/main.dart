@@ -64,6 +64,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    var theme = Theme.of(context);
     Widget page;
 
     switch (selectedIndex) {
@@ -79,6 +80,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return LayoutBuilder(builder: (context, constraints) {
       return Scaffold(
         bottomNavigationBar: BottomNavigationBar(
+          backgroundColor: theme.colorScheme.inversePrimary,
           items: [
             BottomNavigationBarItem(
               icon: Icon(Icons.home),
