@@ -1,6 +1,11 @@
-# upstep
+# first_flutter_app
 
 A new Flutter project.
+
+## Screenshots
+
+![home page](./.github/assets/home_page.png)
+
 
 ## Getting Started
 

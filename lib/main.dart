@@ -31,9 +31,12 @@ class MyAppState extends ChangeNotifier {
   var history = <WordPair>[];
   var current = WordPair.random();
 
+  GlobalKey<AnimatedListState>? historyViewKey;
+
   void getNext() {
     // insert current word into history
     history.insert(0, current);
+    historyViewKey?.currentState?.insertItem(0);
     // generate a new word
     current = WordPair.random();
     notifyListeners();
@@ -83,7 +86,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.favorite),
-              label: "Favorite",
+              label: "Favorites",
             ),
           ],
           currentIndex: selectedIndex,
@@ -107,7 +110,7 @@ class GeneratorPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
+    final appState = context.watch<MyAppState>();
     var pair = appState.current;
 
     IconData icon;
@@ -154,7 +157,7 @@ class GeneratorPage extends StatelessWidget {
   }
 }
 
-class HistoryView extends StatelessWidget {
+class HistoryView extends StatefulWidget {
   const HistoryView({super.key});
 
   /// Used to "fade out" the history items at the top, to suggest continuation.
@@ -168,32 +171,46 @@ class HistoryView extends StatelessWidget {
   );
 
   @override
+  State<HistoryView> createState() => _HistoryViewState();
+}
+
+class _HistoryViewState extends State<HistoryView> {
+  final _historyViewKey = GlobalKey<AnimatedListState>();
+  @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
+    final appState = context.watch<MyAppState>();
+    appState.historyViewKey = _historyViewKey;
+
     return ShaderMask(
-      shaderCallback: (bounds) => _maskingGradient.createShader(bounds),
-      child: ListView.builder(
+      shaderCallback: (bounds) =>
+          HistoryView._maskingGradient.createShader(bounds),
+      blendMode: BlendMode.dstIn,
+      child: AnimatedList(
+        key: _historyViewKey,
         reverse: true,
-        itemCount: appState.history.length,
-        itemBuilder: (BuildContext context, int index) {
+        initialItemCount: appState.history.length,
+        itemBuilder: (context, index, animation) {
           var pair = appState.history[index];
           var isFavorite = appState.favorites.contains(pair);
-          return ListTile(
-            title: Center(
-              child: TextButton.icon(
-                onPressed: () {
-                  appState.toggleFavorite(pair);
-                },
-                label: Text(
-                  pair.asLowerCase,
-                  semanticsLabel: pair.asPascalCase,
+          return SizeTransition(
+            sizeFactor: animation,
+            child: ListTile(
+              title: Center(
+                child: TextButton.icon(
+                  onPressed: () {
+                    appState.toggleFavorite(pair);
+                  },
+                  label: Text(
+                    pair.asLowerCase,
+                    semanticsLabel: pair.asPascalCase,
+                  ),
+                  icon: isFavorite
+                      ? Icon(
+                          Icons.favorite,
+                          size: 12,
+                        )
+                      : SizedBox(),
                 ),
-                icon: isFavorite
-                    ? Icon(
-                        Icons.favorite,
-                        size: 12,
-                      )
-                    : SizedBox(),
               ),
             ),
           );
