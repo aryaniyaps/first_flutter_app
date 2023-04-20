@@ -4,7 +4,10 @@ A new Flutter project.
 
 ## Screenshots
 
-![home page](./.github/assets/home_page.png)
+<p align="left">
+  <img src="./.github/assets/home_page.png" height="500" title="home page">
+  <img src="./.github/assets/favorites_page.png" height="500" title="favorites page">
+</p>
 
 
 ## Getting Started
