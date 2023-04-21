@@ -1,5 +1,6 @@
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -13,15 +14,41 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => MyAppState(),
-      child: MaterialApp(
-        title: 'UpStep',
+      child: MaterialApp.router(
+        title: 'First Flutter App',
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
             seedColor: Colors.deepOrange,
           ),
         ),
-        home: MyHomePage(),
+        routerConfig: GoRouter(
+          initialLocation: "/generator",
+          routes: [
+            ShellRoute(
+              pageBuilder: (context, state, child) {
+                return NoTransitionPage(
+                  key: state.pageKey,
+                  restorationId: state.pageKey.value,
+                  child: AppScaffold(
+                    key: state.pageKey,
+                    child: child,
+                  ),
+                );
+              },
+              routes: [
+                GoRoute(
+                  path: "/generator",
+                  builder: (context, state) => GeneratorPage(),
+                ),
+                GoRoute(
+                  path: "/favorites",
+                  builder: (context, state) => FavoritesPage(),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -54,56 +81,66 @@ class MyAppState extends ChangeNotifier {
   }
 }
 
-class MyHomePage extends StatefulWidget {
+class AppScaffold extends StatefulWidget {
+  const AppScaffold({Key? key, required this.child}) : super(key: key);
+
+  final Widget child;
+
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<AppScaffold> createState() => _AppScaffoldState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  var selectedIndex = 0;
+class _AppScaffoldState extends State<AppScaffold> {
+  int _calculateSelectedIndex(BuildContext context) {
+    final GoRouter route = GoRouter.of(context);
+    final String location = route.location;
+    if (location.startsWith('/generator')) {
+      return 0;
+    }
+    if (location.startsWith('/favorites')) {
+      return 1;
+    }
+    return 0;
+  }
 
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
-    Widget page;
-
-    switch (selectedIndex) {
-      case 0:
-        page = GeneratorPage();
-        break;
-      case 1:
-        page = FavoritesPage();
-        break;
-      default:
-        throw UnimplementedError("no widget for $selectedIndex");
-    }
-    return LayoutBuilder(builder: (context, constraints) {
-      return Scaffold(
-        bottomNavigationBar: BottomNavigationBar(
-          backgroundColor: theme.colorScheme.inversePrimary,
-          items: [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: "home",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.favorite),
-              label: "Favorites",
-            ),
-          ],
-          currentIndex: selectedIndex,
-          onTap: (value) {
-            setState(() {
-              selectedIndex = value;
-            });
-          },
-        ),
-        body: Container(
-          color: Theme.of(context).colorScheme.primaryContainer,
-          child: page,
-        ),
-      );
-    });
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("First Flutter App"),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: theme.colorScheme.inversePrimary,
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: "home",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite),
+            label: "Favorites",
+          ),
+        ],
+        currentIndex: _calculateSelectedIndex(context),
+        onTap: (value) {
+          switch (value) {
+            case 0:
+              context.go("/generator");
+              break;
+            case 1:
+              context.go("/favorites");
+              break;
+            default:
+              context.go("/generator");
+          }
+        },
+      ),
+      body: Container(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        child: widget.child,
+      ),
+    );
   }
 }
 
@@ -122,37 +159,39 @@ class GeneratorPage extends StatelessWidget {
       icon = Icons.favorite_border;
     }
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Expanded(flex: 3, child: HistoryView()),
-            SizedBox(height: 20),
-            BigCard(pair: pair),
-            SizedBox(height: 10),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () {
-                    appState.toggleFavorite(pair);
-                  },
-                  icon: Icon(icon),
-                  label: Text('Like'),
-                ),
-                SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    appState.getNext();
-                  },
-                  child: Text('Next'),
-                ),
-              ],
-            ),
-            Spacer(flex: 2)
-          ],
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(flex: 3, child: HistoryView()),
+              SizedBox(height: 20),
+              BigCard(pair: pair),
+              SizedBox(height: 10),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      appState.toggleFavorite(pair);
+                    },
+                    icon: Icon(icon),
+                    label: Text('Like'),
+                  ),
+                  SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: () {
+                      appState.getNext();
+                    },
+                    child: Text('Next'),
+                  ),
+                ],
+              ),
+              Spacer(flex: 2)
+            ],
+          ),
         ),
       ),
     );
@@ -267,21 +306,25 @@ class FavoritesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
     if (appState.favorites.isEmpty) {
-      return Center(
-        child: Text("No favorites yet."),
+      return Scaffold(
+        body: Center(
+          child: Text("No favorites yet."),
+        ),
       );
     }
 
-    return ListView.builder(
-      padding: EdgeInsets.all(8.0),
-      itemCount: appState.favorites.length,
-      itemBuilder: (BuildContext context, int index) {
-        var pair = appState.favorites[index];
-        return ListTile(
-          leading: Icon(Icons.favorite),
-          title: Text(pair.asLowerCase),
-        );
-      },
+    return Scaffold(
+      body: ListView.builder(
+        padding: EdgeInsets.all(8.0),
+        itemCount: appState.favorites.length,
+        itemBuilder: (BuildContext context, int index) {
+          var pair = appState.favorites[index];
+          return ListTile(
+            leading: Icon(Icons.favorite),
+            title: Text(pair.asLowerCase),
+          );
+        },
+      ),
     );
   }
 }
